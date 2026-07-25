@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#08090b">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.png">
+<link rel="apple-touch-icon" href="icon.png">
+<title>Xenity Secure</title>
+<style>
+  :root{
+    --bg:#08090b; --panel:#101216; --panel-2:#15181d; --line:#22262c;
+    --mint:#39ffb0; --mint-dim:#1c8f63; --text:#eef1f0; --text-dim:#8b9199; --danger:#ff4d5e;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;}
+  body{margin:0; background:#000; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; color:var(--text); display:flex; align-items:center; justify-content:center; min-height:100vh;}
+  #phone{width:100%; max-width:420px; height:100vh; max-height:900px; background:var(--bg); position:relative; overflow:hidden; display:flex; flex-direction:column;}
+  @media(min-width:460px){ #phone{ height:900px; border-radius:38px; border:8px solid #1b1c1f; box-shadow:0 30px 80px rgba(0,0,0,.6); } }
+  .statusbar{height:34px; flex-shrink:0; display:flex; align-items:center; justify-content:space-between; padding:0 22px; font-size:12px; color:var(--text-dim);}
+  .screen{flex:1; display:none; flex-direction:column; min-height:0; padding:0 20px 20px;}
+  .screen.active{display:flex;}
+
+  #setup{justify-content:center; gap:20px;}
+  .brand{display:flex; align-items:center; gap:10px; justify-content:center; margin-bottom:6px;}
+  .brand .dot{width:34px;height:34px;border-radius:10px; background:var(--mint); display:flex;align-items:center;justify-content:center; color:#00120a;font-weight:700;font-size:16px;}
+  .brand h1{font-size:19px;font-weight:600;margin:0;}
+  .tag{text-align:center; color:var(--text-dim); font-size:13px; margin-top:-10px;}
+  .field{display:flex; flex-direction:column; gap:6px;}
+  .field label{font-size:12px; color:var(--text-dim); font-weight:500;}
+  .field input{background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:14px; color:var(--text); font-size:15px; outline:none;}
+  .field input:focus{border-color:var(--mint-dim);}
+  .btn{background:var(--mint); color:#00160d; border:none; border-radius:12px; padding:14px; font-size:15px; font-weight:600; cursor:pointer;}
+  .btn:active{transform:scale(.98);}
+  .btn.ghost{background:transparent; color:var(--text); border:1px solid var(--line);}
+  .status-line{font-size:11.5px; color:var(--text-dim); text-align:center; display:flex; align-items:center; justify-content:center; gap:6px;}
+  .status-line .pt{width:7px; height:7px; border-radius:50%; background:var(--text-dim);}
+  .status-line.ok .pt{background:var(--mint);}
+  .status-line.err .pt{background:var(--danger);}
+  .hint{font-size:11.5px; color:var(--text-dim); line-height:1.5; display:flex; gap:8px; background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:12px;}
+  .hint svg{flex-shrink:0; margin-top:1px;}
+  .installbar{display:none; align-items:center; gap:10px; background:var(--panel); border:1px solid var(--mint-dim); border-radius:12px; padding:10px 12px; font-size:12px;}
+  .installbar.show{display:flex;}
+  .installbar button{background:var(--mint); color:#00160d; border:none; border-radius:8px; padding:8px 12px; font-weight:600; font-size:12px; cursor:pointer;}
+
+  #chat{padding:0; min-height:0;}
+  .chatheader{flex-shrink:0; display:flex; align-items:center; gap:10px; padding:6px 16px 12px; border-bottom:1px solid var(--line);}
+  .backbtn{background:none; border:none; color:var(--text); font-size:20px; cursor:pointer; padding:4px;}
+  .room-info{flex:1; min-width:0;}
+  .room-info .name{font-size:15px; font-weight:600;}
+  .room-info .sub{font-size:11.5px; color:var(--mint); display:flex; align-items:center; gap:5px;}
+  .iconbtn{width:34px; height:34px; border-radius:50%; background:var(--panel-2); border:1px solid var(--line); display:flex; align-items:center; justify-content:center; color:var(--text); cursor:pointer; flex-shrink:0;}
+  .iconbtn.active{background:var(--mint); color:#001a10; border-color:var(--mint);}
+
+  .callbar{display:none; flex-shrink:0; align-items:center; gap:10px; padding:10px 16px; background:var(--panel-2); border-bottom:1px solid var(--line); font-size:13px;}
+  .callbar.show{display:flex;}
+  .callbar .cinfo{flex:1;}
+  .callbar .ctimer{color:var(--text-dim); font-size:11.5px;}
+  .callbar button{border:none; border-radius:10px; padding:8px 12px; font-size:12.5px; font-weight:600; cursor:pointer;}
+  .callbar .accept{background:var(--mint); color:#001a10; margin-right:6px;}
+  .callbar .decline, .callbar .hangup{background:var(--danger); color:#2a0006;}
+
+  .msgs{flex:1; overflow-y:auto; padding:16px 16px 8px; display:flex; flex-direction:column; gap:10px;}
+  .row{display:flex; width:100%;}
+  .row.me{justify-content:flex-end;}
+  .row.sys{justify-content:center;}
+  .sysmsg{font-size:11.5px; color:var(--text-dim); background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:6px 10px;}
+  .bubble{max-width:76%; padding:10px 13px; border-radius:16px; font-size:14.5px; line-height:1.4;}
+  .bubble.photo{padding:6px;}
+  .bubble img{max-width:100%; border-radius:12px; display:block;}
+  .row.me .bubble{background:var(--mint); color:#001a10; border-bottom-right-radius:4px;}
+  .row.other .bubble{background:var(--panel-2); border:1px solid var(--line); border-bottom-left-radius:4px;}
+  .row.me .bubble.photo, .row.other .bubble.photo{background:var(--panel-2); border:1px solid var(--line);}
+  .meta{font-size:10px; opacity:.6; margin-top:3px; padding:0 4px;}
+  .composer{flex-shrink:0; display:flex; align-items:center; gap:8px; padding:12px 14px; border-top:1px solid var(--line);}
+  .composer input[type=text]{flex:1; background:var(--panel); border:1px solid var(--line); border-radius:20px; padding:11px 16px; color:var(--text); font-size:14.5px; outline:none;}
+  .roundbtn{width:38px; height:38px; border-radius:50%; border:none; display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0;}
+  .sendbtn{background:var(--mint); color:#001a10;}
+  .attachbtn{background:var(--panel-2); border:1px solid var(--line); color:var(--text);}
+  .sendbtn:disabled{opacity:.35;}
+  .empty{margin:auto; text-align:center; color:var(--text-dim); font-size:13px; padding:20px; line-height:1.6;}
+  .empty code{background:var(--panel); border:1px solid var(--line); border-radius:6px; padding:1px 6px; color:var(--mint);}
+  ::-webkit-scrollbar{width:0;}
+</style>
+</head>
+<body>
+<div id="phone">
+  <div class="statusbar"><span id="clock">--:--</span><span>Xenity Secure</span></div>
+
+  <div id="setup" class="screen active">
+    <div>
+      <div class="brand"><div class="dot">X</div><h1>Xenity Secure</h1></div>
+      <p class="tag">Messages, photos et appels chiffrés, temps réel</p>
+    </div>
+
+    <div class="field"><label>Ton pseudo</label><input id="in-pseudo" type="text" placeholder="ex: mr_" maxlength="20"></div>
+    <div class="field"><label>Code du salon (à partager avec ton contact)</label><input id="in-room" type="text" placeholder="ex: pau-2026-x9" maxlength="30"></div>
+
+    <button class="btn" id="btn-enter">Entrer dans le salon</button>
+    <button class="btn ghost" id="btn-random">Générer un code de salon</button>
+
+    <div class="status-line" id="net-status"><span class="pt"></span><span>connexion au réseau...</span></div>
+    <div class="installbar" id="installbar">
+      <span>Installe l'appli sur ton écran d'accueil pour une vraie expérience appli.</span>
+      <button id="btn-install">Installer</button>
+    </div>
+
+    <div class="hint">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#39ffb0" stroke-width="2"><path d="M12 2l7 4v6c0 5-3.5 8.5-7 10-3.5-1.5-7-5-7-10V6l7-4z"/></svg>
+      <span>Le code du salon est ta clé de chiffrement (AES‑256‑GCM). <b>!del</b> efface la conversation des deux côtés. Les appels et l'envoi de photos demandent que la page soit ouverte via son adresse https, pas un fichier téléchargé.</span>
+    </div>
+  </div>
+
+  <div id="chat" class="screen">
+    <div class="chatheader">
+      <button class="backbtn" id="btn-back">‹</button>
+      <div class="room-info">
+        <div class="name" id="room-name">salon</div>
+        <div class="sub"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2l7 4v6c0 5-3.5 8.5-7 10-3.5-1.5-7-5-7-10V6l7-4z"/></svg>chiffré · temps réel</div>
+      </div>
+      <button class="iconbtn" id="btn-call" title="Appeler">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+      </button>
+    </div>
+
+    <div class="callbar" id="callbar">
+      <div class="cinfo"><div id="call-title">Appel</div><div class="ctimer" id="call-timer">00:00</div></div>
+      <button class="accept" id="call-accept" style="display:none;">Accepter</button>
+      <button class="decline" id="call-decline" style="display:none;">Refuser</button>
+      <button class="hangup" id="call-hangup" style="display:none;">Raccrocher</button>
+    </div>
+    <audio id="remote-audio" autoplay playsinline></audio>
+
+    <div class="msgs" id="msgs">
+      <div class="empty">Aucun message.<br>Écris ou envoie une photo 👇<br><br>Astuce : <code>!del</code> efface tout.</div>
+    </div>
+    <div class="composer">
+      <button class="roundbtn attachbtn" id="btn-attach" title="Envoyer une photo">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M21 15l-5-5-9 9"/></svg>
+      </button>
+      <input type="file" id="file-input" accept="image/*" style="display:none;">
+      <input type="text" id="in-msg" placeholder="Écrire un message... (!del pour effacer)">
+      <button class="roundbtn sendbtn" id="btn-send">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M2 21l21-9L2 3v7l15 2-15 2v7z"/></svg>
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  var state = { pseudo:'', room:'', key:null, topic:null, es:null, clearedAt:0 };
+  var seenIds = {};
+  var messageStore = [];
+  var deferredInstallPrompt = null;
+
+  function $(id){ return document.getElementById(id); }
+
+  // ---------- PWA install ----------
+  if('serviceWorker' in navigator){
+    window.addEventListener('load', function(){
+      navigator.serviceWorker.register('sw.js').catch(function(){});
+    });
+  }
+  window.addEventListener('beforeinstallprompt', function(e){
+    e.preventDefault();
+    deferredInstallPrompt = e;
+    $('installbar').classList.add('show');
+  });
+  $('btn-install').addEventListener('click', function(){
+    if(!deferredInstallPrompt) return;
+    deferredInstallPrompt.prompt();
+    deferredInstallPrompt = null;
+    $('installbar').classList.remove('show');
+  });
+
+  function updateClock(){
+    var d = new Date();
+    $('clock').textContent = String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
+  }
+  updateClock(); setInterval(updateClock, 15000);
+
+  function randomRoomCode(){
+    var chars='abcdefghijkmnpqrstuvwxyz23456789', s='';
+    for(var i=0;i<8;i++) s+=chars[Math.floor(Math.random()*chars.length)];
+    return s;
+  }
+  $('btn-random').addEventListener('click', function(){ $('in-room').value = randomRoomCode(); });
+
+  // ---------- crypto ----------
+  function bufToHex(buf){ return Array.from(new Uint8Array(buf)).map(function(b){return b.toString(16).padStart(2,'0');}).join(''); }
+  async function deriveKeyAndTopic(roomCode){
+    var enc = new TextEncoder();
+    var digest = await crypto.subtle.digest('SHA-256', enc.encode('xenity-secure::'+roomCode));
+    var key = await crypto.subtle.importKey('raw', digest, {name:'AES-GCM'}, false, ['encrypt','decrypt']);
+    var topicDigest = await crypto.subtle.digest('SHA-256', enc.encode('xenity-topic::'+roomCode));
+    var topic = 'xnsec-' + bufToHex(topicDigest).slice(0,20);
+    return { key: key, topic: topic };
+  }
+  function bufToB64(buf){ var bytes=new Uint8Array(buf), bin=''; for(var i=0;i<bytes.length;i++) bin += String.fromCharCode(bytes[i]); return btoa(bin); }
+  function b64ToBuf(b64){ var bin=atob(b64), bytes=new Uint8Array(bin.length); for(var i=0;i<bin.length;i++) bytes[i]=bin.charCodeAt(i); return bytes.buffer; }
+  async function encryptText(text){
+    var iv = crypto.getRandomValues(new Uint8Array(12));
+    var ct = await crypto.subtle.encrypt({name:'AES-GCM', iv:iv}, state.key, new TextEncoder().encode(text));
+    return { ct: bufToB64(ct), iv: bufToB64(iv) };
+  }
+  async function decryptText(ctB64, ivB64){
+    var pt = await crypto.subtle.decrypt({name:'AES-GCM', iv:new Uint8Array(b64ToBuf(ivB64))}, state.key, b64ToBuf(ctB64));
+    return new TextDecoder().decode(pt);
+  }
+  async function encryptBytes(arrBuf){
+    var iv = crypto.getRandomValues(new Uint8Array(12));
+    var ct = await crypto.subtle.encrypt({name:'AES-GCM', iv:iv}, state.key, arrBuf);
+    return { ct: ct, iv: bufToB64(iv) };
+  }
+  async function decryptBytes(arrBuf, ivB64){
+    return crypto.subtle.decrypt({name:'AES-GCM', iv:new Uint8Array(b64ToBuf(ivB64))}, state.key, arrBuf);
+  }
+
+  // ---------- realtime backend (ntfy.sh, public pub/sub, no account) ----------
+  function setNet(txt, cls){
+    var el = $('net-status');
+    el.className = 'status-line' + (cls?(' '+cls):'');
+    el.querySelector('span:last-child').textContent = txt;
+  }
+
+  async function publish(payload){
+    try{
+      await fetch('https://ntfy.sh/' + state.topic, { method:'POST', headers:{'Content-Type':'text/plain'}, body: JSON.stringify(payload) });
+    }catch(e){ setNet('réseau indisponible, nouvelle tentative...', 'err'); }
+  }
+
+  async function publishAttachment(encryptedBlob, meta){
+    try{
+      await fetch('https://ntfy.sh/' + state.topic, {
+        method:'PUT',
+        headers:{ 'X-Filename':'img.bin', 'X-Message': JSON.stringify(meta) },
+        body: encryptedBlob
+      });
+    }catch(e){ setNet('envoi de la photo impossible', 'err'); }
+  }
+
+  function connectStream(){
+    if(state.es) state.es.close();
+    state.es = new EventSource('https://ntfy.sh/' + state.topic + '/sse');
+    state.es.onopen = function(){ setNet('connecté', 'ok'); };
+    state.es.onerror = function(){ setNet('reconnexion...', 'err'); };
+    state.es.onmessage = function(ev){
+      try{
+        var raw = JSON.parse(ev.data);
+        if(!raw.message) return;
+        var payload = JSON.parse(raw.message);
+        if(raw.attachment) payload.attachment = raw.attachment;
+        handleIncoming(payload);
+      }catch(e){}
+    };
+  }
+
+  async function loadHistory(){
+    try{
+      var res = await fetch('https://ntfy.sh/' + state.topic + '/json?poll=1&since=48h');
+      var text = await res.text();
+      var lines = text.trim().split('\n').filter(Boolean);
+      var msgs = [];
+      var clearedAt = 0;
+      lines.forEach(function(line){
+        try{
+          var raw = JSON.parse(line);
+          if(!raw.message) return;
+          var payload = JSON.parse(raw.message);
+          if(raw.attachment) payload.attachment = raw.attachment;
+          if(payload.type === 'msg' || payload.type === 'photo') msgs.push(payload);
+          if(payload.type === 'clear' && payload.ts > clearedAt) clearedAt = payload.ts;
+        }catch(e){}
+      });
+      state.clearedAt = clearedAt;
+      return msgs.filter(function(m){ return m.ts > clearedAt; });
+    }catch(e){ return []; }
+  }
+
+  // ---------- setup -> chat ----------
+  $('btn-enter').addEventListener('click', enterRoom);
+  $('in-room').addEventListener('keydown', function(e){ if(e.key==='Enter') enterRoom(); });
+  $('in-pseudo').addEventListener('keydown', function(e){ if(e.key==='Enter') enterRoom(); });
+
+  async function enterRoom(){
+    var pseudo = $('in-pseudo').value.trim();
+    var room = $('in-room').value.trim();
+    if(!pseudo){ $('in-pseudo').focus(); return; }
+    if(!room){ $('in-room').focus(); return; }
+
+    state.pseudo = pseudo;
+    state.room = room;
+    setNet('connexion au salon...', '');
+    var kt = await deriveKeyAndTopic(room);
+    state.key = kt.key;
+    state.topic = kt.topic;
+
+    $('room-name').textContent = '# ' + room;
+    $('setup').classList.remove('active');
+    $('chat').classList.add('active');
+    $('msgs').innerHTML = '<div class="empty">Chargement de l\'historique...</div>';
+
+    connectStream();
+    var history = await loadHistory();
+    renderList(history);
+    $('in-msg').focus();
+  }
+
+  $('btn-back').addEventListener('click', function(){
+    if(state.es) state.es.close();
+    endCall(true);
+    $('chat').classList.remove('active');
+    $('setup').classList.add('active');
+  });
+
+  // ---------- chat rendering ----------
+  function handleIncoming(payload){
+    if(payload.type === 'msg' || payload.type === 'photo'){
+      if(payload.ts <= state.clearedAt) return;
+      if(seenIds[payload.id]) return;
+      seenIds[payload.id] = true;
+      messageStore.push(payload);
+      renderList(messageStore);
+    } else if(payload.type === 'clear'){
+      if(payload.ts <= state.clearedAt) return;
+      state.clearedAt = payload.ts;
+      messageStore = messageStore.filter(function(m){ return m.ts > state.clearedAt; });
+      renderList(messageStore, payload.from + ' a effacé la conversation');
+    } else if(payload.type && payload.type.indexOf('call-') === 0){
+      handleCallSignal(payload);
+    }
+  }
+
+  function renderList(list, sysMsg){
+    messageStore = list;
+    var box = $('msgs');
+    if(list.length === 0 && !sysMsg){
+      box.innerHTML = '<div class="empty">Aucun message.<br>Écris ou envoie une photo 👇<br><br>Astuce : <code>!del</code> efface tout.</div>';
+      return;
+    }
+    var scrolledToBottom = (box.scrollTop + box.clientHeight) >= (box.scrollHeight - 40);
+    box.innerHTML = '';
+
+    if(list.length === 0 && sysMsg){
+      var r0 = document.createElement('div');
+      r0.className = 'row sys';
+      r0.innerHTML = '<div class="sysmsg">' + sysMsg + '</div>';
+      box.appendChild(r0);
+      return;
+    }
+
+    list.forEach(function(m){
+      var row = document.createElement('div');
+      row.className = 'row ' + (m.from === state.pseudo ? 'me' : 'other');
+      var bubble = document.createElement('div');
+      bubble.className = 'bubble' + (m.type === 'photo' ? ' photo' : '');
+
+      if(m.type === 'photo'){
+        var img = document.createElement('img');
+        img.alt = 'photo';
+        bubble.appendChild(img);
+        if(m.attachment && m.attachment.url){
+          fetch(m.attachment.url).then(function(r){ return r.arrayBuffer(); })
+            .then(function(buf){ return decryptBytes(buf, m.iv); })
+            .then(function(plainBuf){
+              var blob = new Blob([plainBuf], {type:'image/jpeg'});
+              img.src = URL.createObjectURL(blob);
+            }).catch(function(){ img.replaceWith(document.createTextNode('[photo illisible]')); });
+        }
+      } else {
+        var txt = document.createElement('div');
+        txt.textContent = '⋯';
+        bubble.appendChild(txt);
+        decryptText(m.ct, m.iv).then(function(el){ return function(plain){ el.textContent = plain; }; }(txt))
+          .catch(function(el){ return function(){ el.textContent = '[message illisible]'; }; }(txt));
+      }
+
+      var meta = document.createElement('div');
+      meta.className = 'meta';
+      var time = new Date(m.ts);
+      meta.textContent = (m.from===state.pseudo ? 'toi' : m.from) + ' · ' + String(time.getHours()).padStart(2,'0')+':'+String(time.getMinutes()).padStart(2,'0');
+      bubble.appendChild(meta);
+
+      row.appendChild(bubble);
+      box.appendChild(row);
+    });
+
+    if(sysMsg){
+      var r1 = document.createElement('div');
+      r1.className = 'row sys';
+      r1.innerHTML = '<div class="sysmsg">' + sysMsg + '</div>';
+      box.appendChild(r1);
+    }
+
+    if(scrolledToBottom) box.scrollTop = box.scrollHeight;
+  }
+
+  $('btn-send').addEventListener('click', sendMessage);
+  $('in-msg').addEventListener('keydown', function(e){ if(e.key==='Enter') sendMessage(); });
+
+  async function sendMessage(){
+    var input = $('in-msg');
+    var text = input.value.trim();
+    if(!text) return;
+    input.value = '';
+
+    if(text.toLowerCase() === '!del'){
+      var ts = Date.now();
+      state.clearedAt = ts;
+      messageStore = [];
+      renderList([], 'toi a effacé la conversation');
+      await publish({ type:'clear', from: state.pseudo, ts: ts });
+      return;
+    }
+
+    var enc = await encryptText(text);
+    await publish({
+      type:'msg',
+      id: Date.now() + '_' + Math.random().toString(36).slice(2,8),
+      from: state.pseudo,
+      ct: enc.ct, iv: enc.iv,
+      ts: Date.now()
+    });
+  }
+
+  // ---------- envoi de photo ----------
+  $('btn-attach').addEventListener('click', function(){ $('file-input').click(); });
+  $('file-input').addEventListener('change', async function(e){
+    var file = e.target.files[0];
+    e.target.value = '';
+    if(!file) return;
+    try{
+      var blob = await compressImage(file);
+      var arrBuf = await blob.arrayBuffer();
+      var enc = await encryptBytes(arrBuf);
+      var meta = {
+        type:'photo',
+        id: Date.now() + '_' + Math.random().toString(36).slice(2,8),
+        from: state.pseudo,
+        iv: enc.iv,
+        ts: Date.now()
+      };
+      await publishAttachment(new Blob([enc.ct]), meta);
+    }catch(err){
+      var row = document.createElement('div');
+      row.className='row sys';
+      row.innerHTML = '<div class="sysmsg">Envoi de la photo impossible.</div>';
+      $('msgs').appendChild(row);
+    }
+  });
+
+  function compressImage(file){
+    return new Promise(function(resolve, reject){
+      var img = new Image();
+      var reader = new FileReader();
+      reader.onload = function(e){ img.src = e.target.result; };
+      reader.onerror = reject;
+      img.onload = function(){
+        var maxW = 1280;
+        var scale = Math.min(1, maxW / img.width);
+        var canvas = document.createElement('canvas');
+        canvas.width = Math.round(img.width * scale);
+        canvas.height = Math.round(img.height * scale);
+        var ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        canvas.toBlob(function(b){ b ? resolve(b) : reject(new Error('compression échouée')); }, 'image/jpeg', 0.72);
+      };
+      img.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+
+  // ---------- appel vocal WebRTC ----------
+  var ICE = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
+  var call = { pc:null, localStream:null, active:false, incomingOffer:null, timer:null, seconds:0, pendingIce:[] };
+
+  $('btn-call').addEventListener('click', function(){ if(call.active || call.pc) return; startOutgoingCall(); });
+  $('call-decline').addEventListener('click', function(){ endCall(true); });
+  $('call-hangup').addEventListener('click', function(){ endCall(true); });
+
+  function setCallbar(mode, title){
+    var bar = $('callbar');
+    bar.classList.add('show');
+    $('call-title').textContent = title;
+    $('call-accept').style.display = mode === 'incoming' ? 'inline-block' : 'none';
+    $('call-decline').style.display = mode === 'incoming' ? 'inline-block' : 'none';
+    $('call-hangup').style.display = (mode === 'outgoing' || mode === 'active') ? 'inline-block' : 'none';
+    if(mode === 'hidden'){ bar.classList.remove('show'); }
+  }
+
+  function newPeerConnection(){
+    var pc = new RTCPeerConnection(ICE);
+    pc.onicecandidate = function(ev){ if(ev.candidate) publish({ type:'call-ice', from: state.pseudo, candidate: ev.candidate, ts: Date.now() }); };
+    pc.ontrack = function(ev){ $('remote-audio').srcObject = ev.streams[0]; };
+    pc.onconnectionstatechange = function(){
+      if(pc.connectionState === 'connected'){ call.active = true; setCallbar('active', 'Appel en cours'); startTimer(); }
+      if(['disconnected','failed','closed'].indexOf(pc.connectionState) !== -1){ endCall(false); }
+    };
+    return pc;
+  }
+
+  async function startOutgoingCall(){
+    try{ call.localStream = await navigator.mediaDevices.getUserMedia({ audio:true }); }
+    catch(e){
+      var row = document.createElement('div');
+      row.className='row sys';
+      row.innerHTML = '<div class="sysmsg">Micro inaccessible. Ouvre l\'appli via son adresse https (pas un fichier téléchargé) et autorise le micro.</div>';
+      $('msgs').appendChild(row);
+      return;
+    }
+    call.pc = newPeerConnection();
+    call.localStream.getTracks().forEach(function(t){ call.pc.addTrack(t, call.localStream); });
+    var offer = await call.pc.createOffer();
+    await call.pc.setLocalDescription(offer);
+    setCallbar('outgoing', 'Appel en cours...');
+    publish({ type:'call-offer', from: state.pseudo, sdp: offer, ts: Date.now() });
+  }
+
+  $('call-accept').addEventListener('click', async function(){
+    if(!call.incomingOffer) return;
+    try{ call.localStream = await navigator.mediaDevices.getUserMedia({ audio:true }); }
+    catch(e){ endCall(true); return; }
+    call.pc = newPeerConnection();
+    call.localStream.getTracks().forEach(function(t){ call.pc.addTrack(t, call.localStream); });
+    await call.pc.setRemoteDescription(new RTCSessionDescription(call.incomingOffer.sdp));
+    (call.pendingIce || []).forEach(function(c){ call.pc.addIceCandidate(new RTCIceCandidate(c)).catch(function(){}); });
+    call.pendingIce = [];
+    var answer = await call.pc.createAnswer();
+    await call.pc.setLocalDescription(answer);
+    publish({ type:'call-answer', from: state.pseudo, sdp: answer, ts: Date.now() });
+    setCallbar('active', 'Appel en cours');
+  });
+
+  async function handleCallSignal(payload){
+    if(payload.from === state.pseudo) return;
+    if(payload.type === 'call-offer'){
+      if(call.pc) return;
+      call.incomingOffer = payload;
+      call.pendingIce = [];
+      setCallbar('incoming', payload.from + ' t\'appelle...');
+    } else if(payload.type === 'call-answer'){
+      if(call.pc && call.pc.signalingState === 'have-local-offer'){ await call.pc.setRemoteDescription(new RTCSessionDescription(payload.sdp)); }
+    } else if(payload.type === 'call-ice'){
+      if(call.pc && call.pc.remoteDescription && call.pc.remoteDescription.type){ call.pc.addIceCandidate(new RTCIceCandidate(payload.candidate)).catch(function(){}); }
+      else { call.pendingIce.push(payload.candidate); }
+    } else if(payload.type === 'call-end'){ endCall(false); }
+  }
+
+  function startTimer(){
+    call.seconds = 0;
+    clearInterval(call.timer);
+    call.timer = setInterval(function(){
+      call.seconds++;
+      $('call-timer').textContent = String(Math.floor(call.seconds/60)).padStart(2,'0')+':'+String(call.seconds%60).padStart(2,'0');
+    }, 1000);
+  }
+
+  function endCall(notifyPeer){
+    if(notifyPeer && (call.pc || call.incomingOffer)) publish({ type:'call-end', from: state.pseudo, ts: Date.now() });
+    if(call.pc){ call.pc.close(); call.pc = null; }
+    if(call.localStream){ call.localStream.getTracks().forEach(function(t){ t.stop(); }); call.localStream = null; }
+    clearInterval(call.timer);
+    call.active = false; call.incomingOffer = null; call.pendingIce = [];
+    $('call-timer').textContent = '00:00';
+    setCallbar('hidden', '');
+  }
+})();
+</script>
+</body>
+</html>
