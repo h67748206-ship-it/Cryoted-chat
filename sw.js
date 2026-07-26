@@ -1,5 +1,5 @@
-var CACHE = 'xenity-secure-v4';
-var SHELL = ['./index.html', './manifest.json?v=3', './icon.png?v=2'];
+var CACHE = 'xenity-secure-v6';
+var SHELL = ['./index.html', './manifest.json?v=4', './icon.png?v=3'];
 
 self.addEventListener('install', function(e){
   self.skipWaiting();
