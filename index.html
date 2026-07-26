@@ -726,9 +726,15 @@
         body: JSON.stringify({
           model: 'openai',
           max_tokens: 1200,
+          referrer: 'xenity-secure-app',
           messages: [{ role:'system', content:"Tu es Xenity Bot, un assistant IA sympa et direct qui répond toujours en français. Tu peux écrire du code fonctionnel dans n'importe quel langage quand on te le demande, expliquer clairement, et répondre à toute question. Reste concis sauf si la question demande du détail (comme du code)." }].concat(botHistory)
         })
       });
+      if(!res.ok){
+        var errBody = await res.text().catch(function(){ return ''; });
+        console.error('Pollinations API error', res.status, errBody);
+        throw new Error('http-' + res.status);
+      }
       var data = await res.json();
       var reply = data && data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content;
       if(!reply) throw new Error('réponse vide');
@@ -736,7 +742,8 @@
       botHistory.push({ role:'assistant', content: reply });
       return reply;
     }catch(e){
-      return "Désolé, je n'arrive pas à répondre là (le service IA gratuit est peut-être temporairement indisponible). Réessaie dans un instant.";
+      console.error('Bot IA erreur', e);
+      return "Désolé, je n'arrive pas à répondre là (erreur : " + e.message + "). Réessaie dans un instant.";
     }
   }
 
