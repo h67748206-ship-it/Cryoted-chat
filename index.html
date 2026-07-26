@@ -703,7 +703,7 @@
   async function computeBotReply(text){
     var cmd = text.trim().toLowerCase();
     if(cmd === '!aide' || cmd === '!help'){
-      return "Je suis un assistant IA, pose-moi n'importe quelle question ! Petits bonus rapides : !heure, !dé, !pile.";
+      return "Je suis un bot simple, pas une vraie IA — mais je réponds vite et sans jamais planter ! Commandes : !heure, !dé, !pile, !écho <texte>, !code <langage>.";
     }
     if(cmd === '!heure'){
       var d = new Date();
@@ -715,36 +715,32 @@
     if(cmd === '!pile'){
       return Math.random() < 0.5 ? "🪙 Pile !" : "🪙 Face !";
     }
-
-    botHistory.push({ role:'user', content: text });
-    if(botHistory.length > 12) botHistory = botHistory.slice(-12);
-
-    try{
-      var res = await fetch('https://text.pollinations.ai/openai', {
-        method:'POST',
-        headers:{ 'Content-Type':'application/json' },
-        body: JSON.stringify({
-          model: 'openai',
-          max_tokens: 1200,
-          referrer: 'xenity-secure-app',
-          messages: [{ role:'system', content:"Tu es Xenity Bot, un assistant IA sympa et direct qui répond toujours en français. Tu peux écrire du code fonctionnel dans n'importe quel langage quand on te le demande, expliquer clairement, et répondre à toute question. Reste concis sauf si la question demande du détail (comme du code)." }].concat(botHistory)
-        })
-      });
-      if(!res.ok){
-        var errBody = await res.text().catch(function(){ return ''; });
-        console.error('Pollinations API error', res.status, errBody);
-        throw new Error('http-' + res.status);
-      }
-      var data = await res.json();
-      var reply = data && data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content;
-      if(!reply) throw new Error('réponse vide');
-      reply = reply.trim();
-      botHistory.push({ role:'assistant', content: reply });
-      return reply;
-    }catch(e){
-      console.error('Bot IA erreur', e);
-      return "Désolé, je n'arrive pas à répondre là (erreur : " + e.message + "). Réessaie dans un instant.";
+    if(cmd.indexOf('!écho ') === 0 || cmd.indexOf('!echo ') === 0){
+      return text.slice(text.indexOf(' ')+1);
     }
+    if(cmd.indexOf('!code') === 0){
+      var lang = cmd.replace('!code', '').trim();
+      return getCodeTemplate(lang);
+    }
+    return "Tu as dit : " + text + " (tape !aide pour voir mes commandes)";
+  }
+
+  function getCodeTemplate(lang){
+    var templates = {
+      html:
+"<!DOCTYPE html>\n<html lang=\"fr\">\n<head>\n<meta charset=\"UTF-8\">\n<title>Mon site</title>\n<link rel=\"stylesheet\" href=\"style.css\">\n</head>\n<body>\n<h1>Bienvenue</h1>\n<p>Mon premier site.</p>\n<script src=\"script.js\"></script>\n</body>\n</html>",
+      css:
+"body {\n  margin: 0;\n  font-family: sans-serif;\n  background: #111;\n  color: #fff;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  min-height: 100vh;\n}\nh1 {\n  color: #39ffb0;\n}",
+      js:
+"document.addEventListener('DOMContentLoaded', function() {\n  console.log('Page chargée !');\n  var btn = document.querySelector('button');\n  if (btn) {\n    btn.addEventListener('click', function() {\n      alert('Tu as cliqué !');\n    });\n  }\n});",
+      python:
+"def bonjour(nom):\n    return f\"Salut {nom} !\"\n\nif __name__ == \"__main__\":\n    print(bonjour(\"le monde\"))",
+      discord:
+"// Bot Discord basique (discord.js v14)\nconst { Client, GatewayIntentBits } = require('discord.js');\nconst client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent] });\n\nclient.on('ready', () => console.log(`Connecté en tant que ${client.user.tag}`));\nclient.on('messageCreate', msg => {\n  if (msg.content === '!ping') msg.reply('Pong !');\n});\n\nclient.login('TON_TOKEN_ICI');"
+    };
+    if(templates[lang]) return templates[lang];
+    if(!lang) return "Précise un langage : !code html, !code css, !code js, !code python, !code discord.";
+    return "Je n'ai pas de modèle pour \"" + lang + "\" — dispo : html, css, js, python, discord.";
   }
 
   // ---------- photo ----------
