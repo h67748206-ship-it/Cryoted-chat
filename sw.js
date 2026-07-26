@@ -1,4 +1,4 @@
-var CACHE = 'xenity-secure-v2';
+var CACHE = 'xenity-secure-v3';
 var SHELL = ['./index.html', './manifest.json', './icon.png'];
 
 self.addEventListener('install', function(e){
