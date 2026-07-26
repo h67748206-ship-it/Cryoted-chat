@@ -93,7 +93,7 @@
   .row.me{justify-content:flex-end;}
   .row.sys{justify-content:center;}
   .sysmsg{font-size:11.5px; color:var(--text-dim); background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:6px 10px;}
-  .bubble{max-width:76%; padding:10px 13px; border-radius:16px; font-size:14.5px; line-height:1.4;}
+  .bubble{max-width:76%; padding:10px 13px; border-radius:16px; font-size:14.5px; line-height:1.4; white-space:pre-wrap; word-break:break-word;}
   .bubble.photo{padding:6px;}
   .bubble img{max-width:100%; border-radius:12px; display:block;}
   .row.me .bubble{background:var(--green); color:#001a0d; border-bottom-right-radius:4px;}
@@ -721,7 +721,8 @@
         headers:{ 'Content-Type':'application/json' },
         body: JSON.stringify({
           model: 'openai',
-          messages: [{ role:'system', content:"Tu es Xenity Bot, un assistant sympa, direct et concis qui répond toujours en français." }].concat(botHistory)
+          max_tokens: 1200,
+          messages: [{ role:'system', content:"Tu es Xenity Bot, un assistant IA sympa et direct qui répond toujours en français. Tu peux écrire du code fonctionnel dans n'importe quel langage quand on te le demande, expliquer clairement, et répondre à toute question. Reste concis sauf si la question demande du détail (comme du code)." }].concat(botHistory)
         })
       });
       var data = await res.json();
