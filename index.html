@@ -330,6 +330,10 @@
       var selfContact = { id: profile.id, nickname: 'Toi (test solo)', addedAt: Date.now(), lastAt: Date.now() };
       openChat(selfContact);
     }
+    if(e.target && (e.target.id === 'btn-talk-bot' || e.target.closest('#btn-talk-bot'))){
+      var botContact = { id: BOT_ID, nickname: 'Xenity Bot', addedAt: Date.now(), lastAt: Date.now() };
+      openChat(botContact);
+    }
   });
 
   function updateClock(){
