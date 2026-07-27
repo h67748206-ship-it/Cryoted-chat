@@ -720,6 +720,7 @@
 
   var BOT_ID = 'xenitybot-0000-local-assistant';
   var botHistory = [];
+  var lastErrBody = '';
 
   async function computeBotReply(text){
     var cmd = text.trim().toLowerCase();
@@ -769,6 +770,7 @@
       });
       if(!res.ok){
         var errBody = await res.text().catch(function(){ return ''; });
+        lastErrBody = errBody;
         console.error('Gemini API error', res.status, errBody);
         throw new Error('http-' + res.status);
       }
@@ -784,7 +786,12 @@
         return "Ta clé Gemini semble invalide. Vérifie que tu l'as bien copiée en entier depuis aistudio.google.com et réenregistre-la dans ⚙️ Réglages.";
       }
       if(e.message === 'http-429'){
-        return "Trop de demandes d'un coup pour le quota gratuit, réessaie dans une minute.";
+        var detail = '';
+        try{
+          var parsed = JSON.parse(lastErrBody);
+          detail = (parsed && parsed.error && parsed.error.message) ? ' — ' + parsed.error.message : '';
+        }catch(_e){}
+        return "Quota gratuit dépassé pour l'instant" + detail + ". Attends quelques minutes sans réessayer, puis retente une seule fois.";
       }
       return "Désolé, je n'arrive pas à répondre là (erreur : " + e.message + "). Réessaie dans un instant.";
     }
